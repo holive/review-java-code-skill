@@ -11,6 +11,7 @@ Systematic workflow for reviewing Java/Spring code against established standards
 - What problem does this solve?
 - What is the scope of impact?
 - Are tests included and do they cover the actual use cases?
+- Verify any issue by re-reading code before including it in feedback
 
 ## 2. Java Best Practices Review
 
@@ -65,9 +66,8 @@ Systematic workflow for reviewing Java/Spring code against established standards
 - Would this test fail if the bug it's meant to catch was reintroduced?
 
 ### Coverage vs Duplication
-- Are there redundant tests covering the exact same scenario with different names?
-- Are multiple tests asserting the same behavior through slightly different paths?
-- Could tests be consolidated without losing coverage?
+- Flag duplication only when tests have identical inputs AND identical assertions
+- Similar structure with different data or assertions is not duplication
 
 ### Edge Cases and Error Paths
 - Are boundary conditions tested (empty collections, null inputs, max values)?
@@ -95,6 +95,8 @@ Systematic workflow for reviewing Java/Spring code against established standards
 - Are real implementations preferred when practical (e.g., testcontainers)?
 
 ## 5. Feedback Format
+
+Only include findings you've verified; omit uncertain issues.
 
 ### Required Changes (Blocking)
 - Security vulnerabilities
