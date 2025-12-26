@@ -1,6 +1,6 @@
 ---
 name: review-changes-java
-description: Systematic code review workflow to evaluate changes against Java and Spring standards. Use when reviewing Pull Requests, commits, or diffs. Ensures robustness, maintainability, and adherence to best practices.
+description: Systematic code review workflow for Java/Spring Boot. Use when reviewing PRs, commits, or diffs. Covers robustness, architecture, and testing quality.
 ---
 
 # Review Changes (Java/Spring Boot)
@@ -13,106 +13,123 @@ Systematic workflow for reviewing Java/Spring code against established standards
 - Are tests included and do they cover the actual use cases?
 - Verify any issue by re-reading code before including it in feedback
 
-## 2. Java Best Practices Review
+## 2. Java Best Practices
+
+### Null Safety
+- Is null handled defensively (null checks, Optional, or @Nullable annotations)?
+- Are null returns avoided in favor of empty collections or Optional?
+  - *Why: NullPointerException is the most common Java bug*
 
 ### Robustness
-- Is `try-with-resources` used to close resources?
-- Is exception handling correct (not swallowing exceptions, proper logging)?
+- Is `try-with-resources` used for Closeable resources?
+- Is exception handling correct (not swallowing, proper logging, specific catch)?
+  - *Why: Swallowed exceptions hide bugs; broad catches mask root causes*
 
 ### Immutability
 - Are fields declared `final` where possible?
-- Could the class be immutable?
 - Are DTOs using records when appropriate?
+  - *Why: Immutable objects are thread-safe and easier to reason about*
 
 ### Types
 - Are raw types (e.g., `List` instead of `List<String>`) avoided?
-- Is `Optional` used correctly (prefer `orElse`, `map`, `ifPresent` over `isPresent()` + `get()`)?
+- Is `Optional` used idiomatically (`orElse`, `map`, `ifPresent` over `isPresent()` + `get()`)?
+- Is primitive obsession avoided (domain types vs raw String/int for IDs)?
 
 ### Contracts
-- If `equals()` is implemented, is `hashCode()` also implemented?
+- If `equals()` is overridden, is `hashCode()` also overridden?
+  - *Why: Violating this breaks HashMap, HashSet, and other collections*
 
-### Lambdas/Streams
-- Is the streams code readable (avoid deeply nested operations)?
+### Thread Safety
+- Is shared mutable state properly synchronized or avoided?
+- Are collections thread-safe when accessed concurrently?
+
+### Streams
+- Is stream code readable (avoid deeply nested operations)?
 - Are method references used where they improve clarity?
 
-### Naming
-- Clear and descriptive names (no cryptic abbreviations)?
-
-## 3. Spring Patterns Review
+## 3. Spring Patterns
 
 ### Dependency Injection
 - Is injection done via **constructor**? (avoid `@Autowired` on fields)
+  - *Why: Enables immutability, makes dependencies explicit, easier to test*
 
 ### Layers
-- Is business logic in the `@Service`?
-- Is the `@Controller` only orchestrating the call (no business logic)?
-- Is the `@Repository` called directly by the `Controller`? (should not be)
+- Is business logic in `@Service`, not `@Controller`?
+- Is `@Repository` accessed only through `@Service`, not directly from `@Controller`?
+  - *Why: Separation of concerns; controllers handle HTTP, services handle logic*
 
 ### Transactions
-- Is `@Transactional` used correctly (generally on public `Service` methods)?
+- Is `@Transactional` on public `@Service` methods (not private, not on repositories)?
+  - *Why: Spring proxies can't intercept private methods; transactions belong at service layer*
+
+### Data Access
+- Are N+1 query problems avoided (use `@EntityGraph` or fetch joins)?
+- Is eager vs lazy loading appropriate for the use case?
+
+### Configuration
+- Are related properties grouped with `@ConfigurationProperties` vs scattered `@Value`?
+
+### Validation
+- Are `@Valid` and constraint annotations used on request DTOs?
+- Are validation messages using constants (like ValidationMessage.java)?
 
 ### Web
 - Is `WebClient` used instead of deprecated `RestTemplate`?
 
 ### Security
-- Are endpoints secured by Spring Security?
+- Are endpoints secured appropriately?
 - Is sensitive data excluded from logs?
 
-## 4. Testing Quality Review
+## 4. Architecture
 
-### Test Purpose Validation
-- Does each test actually verify the behavior it claims to test?
-- Is the assertion checking the right thing, or just that "something happened"?
+### Package Boundaries
+- Does the change respect module/layer boundaries?
+- Are there new circular dependencies between packages?
+
+### API Contracts
+- Are breaking changes to public APIs flagged?
+- Are new endpoints following existing naming conventions?
+
+## 5. Testing Quality
+
+### Effective Tests
+- Does each test verify the behavior it claims to test?
 - Would this test fail if the bug it's meant to catch was reintroduced?
+- Are assertions specific (not just "something happened")?
 
-### Coverage vs Duplication
-- Flag duplication only when tests have identical inputs AND identical assertions
-- Similar structure with different data or assertions is not duplication
+### Coverage
+- Are boundary conditions tested (empty, null, max values)?
+- Are error paths tested, not just happy paths?
+- Flag duplication only when tests have identical inputs AND assertions
 
-### Edge Cases and Error Paths
-- Are boundary conditions tested (empty collections, null inputs, max values)?
-- Are error scenarios tested, not just happy paths?
-- Are exception messages and types verified when testing error cases?
+### Test Hygiene
+- Does the test name describe scenario and expected outcome?
+- Is arrange-act-assert pattern followed?
+- Are tests independent (no shared mutable state, no order dependence)?
 
-### Test Independence
-- Do tests rely on execution order or shared mutable state?
-- Does each test set up its own required state?
-- Are tests cleaning up after themselves when needed?
-
-### Meaningful Assertions
-- Are assertions specific enough to catch real bugs?
-- Is the test asserting on actual behavior, not implementation details?
-- Are error messages in assertions helpful for debugging failures?
-
-### Test Structure
-- Does the test name describe the scenario and expected outcome?
-- Is the arrange-act-assert pattern followed?
-- Is the test focused on one behavior (not testing multiple things)?
-
-### Mock Usage
+### Mocking
 - Are mocks used appropriately (not mocking the thing under test)?
-- Is mock setup verifying interactions that matter?
-- Are real implementations preferred when practical (e.g., testcontainers)?
+- Are real implementations preferred when practical (testcontainers, test slices)?
 
-## 5. Feedback Format
+## 6. Feedback Format
 
 Only include findings you've verified; omit uncertain issues.
 
 ### Required Changes (Blocking)
 - Security vulnerabilities
-- Violations of Java contracts (e.g., equals/hashCode mismatch)
-- Use of raw types
+- Java contract violations (equals/hashCode, Closeable not closed)
+- Raw types, unsafe null handling
 - Field-based dependency injection
-- Tests that don't actually test the claimed behavior
-- Tests with assertions that would pass even if the code was broken
+- N+1 queries or transaction misuse
+- Tests that don't actually verify behavior
 
 ### Suggested Improvements (Non-blocking)
-- Refactoring opportunities (e.g., use method reference)
-- Naming could be clearer
-- Redundant tests that could be consolidated
+- Refactoring opportunities
+- Naming clarity
 - Missing edge case coverage
+- Consolidation of redundant tests
 
 ### Positive Feedback
-- note well-designed tests that cover meaningful scenarios
-- acknowledge good use of testcontainers or test slices
-- recognize clear test naming and structure
+- Well-designed tests covering meaningful scenarios
+- Good use of testcontainers or test slices
+- Clean separation of concerns
