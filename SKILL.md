@@ -7,6 +7,15 @@ description: Systematic code review workflow for Java/Spring Boot. Use when revi
 
 Systematic workflow for reviewing Java/Spring code against established standards.
 
+## 0. Verify Before Reporting
+
+This skill describes what to look for, not what to report blindly.
+
+Before flagging any issue:
+- Confirm the problem exists (run tests, trace code paths, check outputs)
+- If behavior seems wrong but code works, investigate why before reporting
+- Understanding why code works is prerequisite to calling it a bug
+
 ## 1. Understand the Change
 - What problem does this solve?
 - What is the scope of impact?
